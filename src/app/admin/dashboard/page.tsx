@@ -48,9 +48,9 @@ interface Team {
   id: number;
   name: string;
   serviceArea: string;
-  centerLatitude: number;
-  centerLongitude: number;
-  radiusKm: number;
+  centerLatitude: number | null;
+  centerLongitude: number | null;
+  radiusKm: number | null;
   contactEmail: string;
   contactPhone: string;
   createdAt: string;
@@ -712,11 +712,11 @@ export default function AdminDashboard() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>Center: {team.centerLatitude.toFixed(4)}, {team.centerLongitude.toFixed(4)}</span>
+                        <span>Center: {team.centerLatitude?.toFixed(4) ?? 'N/A'}, {team.centerLongitude?.toFixed(4) ?? 'N/A'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Coverage Radius:</span>
-                        <span className="font-semibold">{team.radiusKm} km</span>
+                        <span className="font-semibold">{team.radiusKm?.toFixed(1) ?? 'N/A'} km</span>
                       </div>
                       <div className="text-muted-foreground">📧 {team.contactEmail}</div>
                       <div className="text-muted-foreground">📱 {team.contactPhone}</div>
@@ -891,11 +891,11 @@ export default function AdminDashboard() {
                   <CardContent className="text-sm space-y-2">
                     <div>
                       <span className="text-muted-foreground">Center:</span>{" "}
-                      {selectedTeam.centerLatitude.toFixed(4)}, {selectedTeam.centerLongitude.toFixed(4)}
+                      {selectedTeam.centerLatitude?.toFixed(4) ?? 'N/A'}, {selectedTeam.centerLongitude?.toFixed(4) ?? 'N/A'}
                     </div>
                     <div>
                       <span className="text-muted-foreground">Radius:</span>{" "}
-                      {selectedTeam.radiusKm} km
+                      {selectedTeam.radiusKm?.toFixed(1) ?? 'N/A'} km
                     </div>
                   </CardContent>
                 </Card>
