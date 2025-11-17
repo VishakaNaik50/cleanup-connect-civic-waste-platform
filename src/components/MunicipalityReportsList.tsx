@@ -67,14 +67,43 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
   const [updating, setUpdating] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
+  const [userTeamId, setUserTeamId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchReports();
-  }, [statusFilter, severityFilter]);
+    fetchUserTeam();
+  }, [municipalityUserId]);
+
+  useEffect(() => {
+    if (userTeamId !== null) {
+      fetchReports();
+    }
+  }, [statusFilter, severityFilter, userTeamId]);
+
+  const fetchUserTeam = async () => {
+    try {
+      const token = localStorage.getItem("bearer_token");
+      const response = await fetch(`/api/users/${municipalityUserId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUserTeamId(userData.teamId);
+      } else {
+        toast.error("Failed to fetch team information");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch user team:", error);
+      toast.error("Failed to load team information");
+    }
+  };
 
   const fetchReports = async () => {
     try {
-      let url = '/api/reports?limit=100';
+      setLoading(true);
+      
+      // Only fetch reports assigned to this team
+      let url = `/api/reports?limit=100&assignedTeamId=${userTeamId}`;
       
       if (statusFilter !== "all") {
         url += `&status=${statusFilter}`;
@@ -223,7 +252,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
     toast.success("Opening location in Google Maps");
   };
 
-  if (loading) {
+  if (loading || userTeamId === null) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
@@ -237,6 +266,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
       <Card>
         <CardHeader>
           <CardTitle>Filter Reports</CardTitle>
+          <CardDescription>Showing reports assigned to your team</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-4">
           <div className="flex-1">
@@ -277,7 +307,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-semibold mb-2">No reports found</p>
             <p className="text-sm text-muted-foreground text-center">
-              No reports match the current filters
+              No reports have been assigned to your team yet
             </p>
           </CardContent>
         </Card>

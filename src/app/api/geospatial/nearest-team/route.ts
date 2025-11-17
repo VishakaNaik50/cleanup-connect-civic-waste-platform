@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { municipalityTeams } from '@/db/schema';
+import { municipalityTeams, reports } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 // Haversine formula to calculate distance between two coordinates in kilometers
@@ -115,6 +115,99 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('GET error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error')
+    }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { reportId, latitude, longitude } = body;
+
+    // Validate required parameters
+    if (!reportId || !latitude || !longitude) {
+      return NextResponse.json({ 
+        error: 'reportId, latitude, and longitude are required',
+        code: 'MISSING_PARAMETERS' 
+      }, { status: 400 });
+    }
+
+    // Parse and validate lat/lng are numbers
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      return NextResponse.json({ 
+        error: 'Latitude and longitude must be valid numbers',
+        code: 'INVALID_COORDINATE_FORMAT' 
+      }, { status: 400 });
+    }
+
+    // Validate lat/lng ranges
+    if (lat < -90 || lat > 90) {
+      return NextResponse.json({ 
+        error: 'Latitude must be between -90 and 90',
+        code: 'INVALID_LATITUDE_RANGE' 
+      }, { status: 400 });
+    }
+
+    if (lng < -180 || lng > 180) {
+      return NextResponse.json({ 
+        error: 'Longitude must be between -180 and 180',
+        code: 'INVALID_LONGITUDE_RANGE' 
+      }, { status: 400 });
+    }
+
+    // Query all active teams
+    const activeTeams = await db.select()
+      .from(municipalityTeams)
+      .where(eq(municipalityTeams.status, 'active'));
+
+    if (activeTeams.length === 0) {
+      return NextResponse.json({ 
+        error: 'No active teams available',
+        code: 'NO_ACTIVE_TEAMS' 
+      }, { status: 404 });
+    }
+
+    // Calculate distances for all active teams
+    const teamsWithDistance = activeTeams.map(team => {
+      const serviceArea = team.serviceArea as { lat: number; lng: number; radius?: number };
+      const distance = calculateDistance(lat, lng, serviceArea.lat, serviceArea.lng);
+      
+      return {
+        team,
+        distance
+      };
+    });
+
+    // Sort by distance ascending
+    teamsWithDistance.sort((a, b) => a.distance - b.distance);
+
+    // Get the nearest team
+    const nearest = teamsWithDistance[0];
+
+    // Update the report with assignment
+    const now = new Date().toISOString();
+    await db.update(reports)
+      .set({
+        assignedTeamId: nearest.team.id,
+        assignmentDate: now,
+        status: 'assigned',
+        updatedAt: now
+      })
+      .where(eq(reports.id, reportId));
+
+    return NextResponse.json({
+      teamId: nearest.team.id,
+      teamName: nearest.team.name,
+      distance: nearest.distance
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('POST error:', error);
     return NextResponse.json({ 
       error: 'Internal server error: ' + (error instanceof Error ? error.message : 'Unknown error')
     }, { status: 500 });

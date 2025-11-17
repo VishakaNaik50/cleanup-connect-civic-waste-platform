@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const severity = searchParams.get('severity');
     const municipality = searchParams.get('municipality');
+    const assignedTeamId = searchParams.get('assignedTeamId');
 
     let query = db.select().from(reports);
 
@@ -89,6 +90,16 @@ export async function GET(request: NextRequest) {
 
     if (municipality) {
       conditions.push(eq(reports.assignedMunicipality, municipality));
+    }
+
+    if (assignedTeamId) {
+      if (isNaN(parseInt(assignedTeamId))) {
+        return NextResponse.json(
+          { error: 'Valid assignedTeamId is required', code: 'INVALID_TEAM_ID' },
+          { status: 400 }
+        );
+      }
+      conditions.push(eq(reports.assignedTeamId, parseInt(assignedTeamId)));
     }
 
     // Apply filters

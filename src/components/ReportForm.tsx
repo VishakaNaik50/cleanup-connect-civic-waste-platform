@@ -177,7 +177,7 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          photoUrl: photoPreview, // Store the actual base64 image
+          photoUrl: photoPreview,
           location: {
             lat: parseFloat(formData.latitude),
             lng: parseFloat(formData.longitude),
@@ -197,6 +197,29 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
       }
 
       const newReport = await response.json();
+
+      // Auto-assign to nearest municipality team
+      try {
+        const assignRes = await fetch("/api/geospatial/nearest-team", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reportId: newReport.id,
+            latitude: parseFloat(formData.latitude),
+            longitude: parseFloat(formData.longitude),
+          }),
+        });
+
+        if (assignRes.ok) {
+          const assignData = await assignRes.json();
+          toast.success("Report assigned to nearest team!", {
+            description: `Assigned to ${assignData.teamName} (${assignData.distance.toFixed(1)}km away)`,
+          });
+        }
+      } catch (assignError) {
+        console.error("Auto-assignment failed:", assignError);
+        // Continue even if assignment fails
+      }
 
       // Calculate carbon footprint
       const carbonRes = await fetch(`/api/reports/${newReport.id}/carbon?id=${newReport.id}`, {

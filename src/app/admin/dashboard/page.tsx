@@ -23,7 +23,8 @@ import {
   Filter,
   Search,
   UserPlus,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 
 interface Report {
@@ -83,6 +84,7 @@ export default function AdminDashboard() {
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   
   const [createTeamDialogOpen, setCreateTeamDialogOpen] = useState(false);
+  const [gettingTeamLocation, setGettingTeamLocation] = useState(false);
   const [newTeam, setNewTeam] = useState({
     name: "",
     serviceArea: "",
@@ -258,7 +260,49 @@ export default function AdminDashboard() {
     }
   };
 
+  const getTeamLocation = () => {
+    setGettingTeamLocation(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          setNewTeam(prev => ({
+            ...prev,
+            centerLatitude: latitude.toString(),
+            centerLongitude: longitude.toString(),
+          }));
+          
+          setGettingTeamLocation(false);
+          toast.success("Location captured successfully", {
+            description: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}`
+          });
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          toast.error("Could not get location. Please enter manually.");
+          setGettingTeamLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser");
+      setGettingTeamLocation(false);
+    }
+  };
+
   const handleCreateTeam = async () => {
+    if (!newTeam.name || !newTeam.serviceArea || !newTeam.centerLatitude || 
+        !newTeam.centerLongitude || !newTeam.radiusKm || !newTeam.contactEmail || 
+        !newTeam.contactPhone) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("admin_token");
       const res = await fetch("/api/admin/teams", {
@@ -268,10 +312,13 @@ export default function AdminDashboard() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          ...newTeam,
+          name: newTeam.name,
+          serviceArea: newTeam.serviceArea,
           centerLatitude: parseFloat(newTeam.centerLatitude),
           centerLongitude: parseFloat(newTeam.centerLongitude),
-          radiusKm: parseFloat(newTeam.radiusKm)
+          radiusKm: parseFloat(newTeam.radiusKm),
+          contactEmail: newTeam.contactEmail,
+          contactPhone: newTeam.contactPhone
         })
       });
       
@@ -777,13 +824,13 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Team Dialog */}
+      {/* Create Team Dialog - Updated with Auto Geolocation */}
       <Dialog open={createTeamDialogOpen} onOpenChange={setCreateTeamDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create New Municipality Team</DialogTitle>
             <DialogDescription>
-              Add a new team with their service area and contact details
+              Add a new team with their service area. Use automatic location detection for accuracy.
             </DialogDescription>
           </DialogHeader>
           
@@ -806,6 +853,34 @@ export default function AdminDashboard() {
               />
             </div>
             
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <Label>Team Location *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={getTeamLocation}
+                  disabled={gettingTeamLocation}
+                >
+                  {gettingTeamLocation ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Getting location...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-4 w-4 mr-2" />
+                      Use Current Location
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Click the button to automatically detect the team's location coordinates
+              </p>
+            </div>
+            
             <div>
               <Label>Center Latitude *</Label>
               <Input
@@ -814,6 +889,7 @@ export default function AdminDashboard() {
                 value={newTeam.centerLatitude}
                 onChange={(e) => setNewTeam({...newTeam, centerLatitude: e.target.value})}
                 placeholder="e.g., 40.7128"
+                readOnly={gettingTeamLocation}
               />
             </div>
             
@@ -825,6 +901,7 @@ export default function AdminDashboard() {
                 value={newTeam.centerLongitude}
                 onChange={(e) => setNewTeam({...newTeam, centerLongitude: e.target.value})}
                 placeholder="e.g., -74.0060"
+                readOnly={gettingTeamLocation}
               />
             </div>
             
@@ -837,6 +914,9 @@ export default function AdminDashboard() {
                 onChange={(e) => setNewTeam({...newTeam, radiusKm: e.target.value})}
                 placeholder="e.g., 5"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Service area radius from the center point
+              </p>
             </div>
             
             <div>
