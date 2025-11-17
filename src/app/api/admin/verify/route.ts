@@ -1,75 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db';
-import { users } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get('userId');
-
-    // Validate userId parameter
-    if (!userId) {
+    // Get Authorization header
+    const authHeader = request.headers.get('Authorization');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { 
-          error: 'User ID is required',
-          code: 'MISSING_USER_ID' 
+          error: 'Authorization token is required',
+          code: 'MISSING_TOKEN' 
         },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
-    // Validate userId is a valid integer
-    const parsedUserId = parseInt(userId);
-    if (isNaN(parsedUserId)) {
-      return NextResponse.json(
-        { 
-          error: 'Valid user ID is required',
-          code: 'INVALID_USER_ID' 
-        },
-        { status: 400 }
-      );
-    }
+    // Extract token
+    const token = authHeader.substring(7);
 
-    // Query user from database
-    const user = await db.select()
-      .from(users)
-      .where(eq(users.id, parsedUserId))
-      .limit(1);
+    try {
+      // Verify JWT token
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-    // Check if user exists
-    if (user.length === 0) {
-      return NextResponse.json(
-        { 
-          error: 'User not found',
-          code: 'USER_NOT_FOUND' 
-        },
-        { status: 404 }
-      );
-    }
+      // Check if user is super-admin
+      if (decoded.role !== 'super-admin') {
+        return NextResponse.json(
+          {
+            error: 'Not authorized as super-admin',
+            code: 'NOT_SUPER_ADMIN'
+          },
+          { status: 403 }
+        );
+      }
 
-    const foundUser = user[0];
-
-    // Check if user is super-admin
-    if (foundUser.role === 'super-admin') {
-      // Return admin verification with user details (excluding password)
-      const { password, ...userWithoutPassword } = foundUser;
+      // Return verification success
       return NextResponse.json(
         {
           isAdmin: true,
-          user: userWithoutPassword
+          user: {
+            id: decoded.userId,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role
+          }
         },
         { status: 200 }
       );
+    } catch (jwtError) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid or expired token',
+          code: 'INVALID_TOKEN' 
+        },
+        { status: 401 }
+      );
     }
-
-    // User exists but is not super-admin
-    return NextResponse.json(
-      {
-        isAdmin: false
-      },
-      { status: 200 }
-    );
 
   } catch (error) {
     console.error('GET error:', error);
