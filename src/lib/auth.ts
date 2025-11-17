@@ -2,7 +2,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'citizen' | 'municipality';
+  role: 'citizen' | 'municipality' | 'super-admin' | 'municipality-worker';
   municipalityName?: string;
   municipalityLocation?: { lat: number; lng: number };
   points: number;

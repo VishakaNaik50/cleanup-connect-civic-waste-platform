@@ -52,6 +52,13 @@ export default function MunicipalityDashboard() {
       router.push("/");
       return;
     }
+    
+    // Redirect super-admin to admin dashboard
+    if (currentUser.role === "super-admin") {
+      router.push("/admin/dashboard");
+      return;
+    }
+    
     if (currentUser.role !== "municipality") {
       router.push("/citizen");
       return;

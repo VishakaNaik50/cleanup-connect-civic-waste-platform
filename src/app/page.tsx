@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { AuthDialog } from "@/components/AuthDialog";
 import { MapPin, Users, Award, TrendingUp, Recycle, Shield, BarChart3, Camera, Leaf } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
   const [platformStats, setPlatformStats] = useState({
     totalReports: 25,
@@ -70,9 +72,20 @@ export default function Home() {
               CleanUp Connect
             </h1>
           </div>
-          <Button onClick={() => setAuthOpen(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg">
-            Get Started
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.push("/admin/login")}
+              className="text-xs"
+            >
+              <Shield className="h-3 w-3 mr-1" />
+              Admin
+            </Button>
+            <Button onClick={() => setAuthOpen(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg">
+              Get Started
+            </Button>
+          </div>
         </div>
       </header>
 

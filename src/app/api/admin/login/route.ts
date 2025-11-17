@@ -3,6 +3,9 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,10 +87,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return user object without password
-    const { password: _, ...userWithoutPassword } = user;
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    return NextResponse.json(userWithoutPassword, { status: 200 });
+    return NextResponse.json({ token }, { status: 200 });
   } catch (error) {
     console.error('POST error:', error);
     return NextResponse.json(

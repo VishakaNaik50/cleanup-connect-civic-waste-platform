@@ -37,8 +37,9 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Store admin user data
-      localStorage.setItem("user", JSON.stringify(data));
+      // Store admin token for API authentication
+      localStorage.setItem("admin_token", data.token);
+      
       toast.success("Admin login successful!");
       router.push("/admin/dashboard");
     } catch (error) {
