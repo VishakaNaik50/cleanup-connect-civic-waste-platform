@@ -30,8 +30,8 @@ interface Report {
   id: number;
   description: string;
   location: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   wardNumber: string;
   photoUrl: string;
   wasteType: string;
@@ -677,7 +677,7 @@ export default function AdminDashboard() {
                           </div>
                           
                           <div className="text-sm text-muted-foreground">
-                            Coordinates: {report.latitude.toFixed(6)}, {report.longitude.toFixed(6)}
+                            Coordinates: {report.latitude?.toFixed(6) ?? 'N/A'}, {report.longitude?.toFixed(6) ?? 'N/A'}
                           </div>
                         </div>
                       </div>
