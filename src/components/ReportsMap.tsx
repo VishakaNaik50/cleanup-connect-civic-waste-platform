@@ -40,7 +40,8 @@ export function ReportsMap({ municipalityName }: ReportsMapProps) {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch('/api/reports?limit=100');
+      // Fetch only reports assigned to this municipality
+      const response = await fetch(`/api/reports?limit=100&municipality=${encodeURIComponent(municipalityName)}`);
       if (!response.ok) {
         throw new Error("Failed to fetch reports");
       }

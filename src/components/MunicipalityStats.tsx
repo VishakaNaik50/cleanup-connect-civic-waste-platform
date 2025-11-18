@@ -22,8 +22,8 @@ export function MunicipalityStats({ municipalityName }: MunicipalityStatsProps) 
 
   const fetchStats = async () => {
     try {
-      // Fetch all reports
-      const response = await fetch('/api/reports?limit=1000');
+      // Fetch only reports assigned to this municipality
+      const response = await fetch(`/api/reports?limit=1000&municipality=${encodeURIComponent(municipalityName)}`);
       const reports = await response.json();
       
       const totalReports = reports.length;

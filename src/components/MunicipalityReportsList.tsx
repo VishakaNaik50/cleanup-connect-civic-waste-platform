@@ -76,8 +76,8 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
     try {
       setLoading(true);
       
-      // Fetch ALL reports since municipality users can see all reports
-      let url = `/api/reports?limit=100`;
+      // Fetch only reports assigned to this municipality
+      let url = `/api/reports?limit=100&municipality=${encodeURIComponent(municipalityName)}`;
       
       if (statusFilter !== "all") {
         url += `&status=${statusFilter}`;
@@ -240,7 +240,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
       <Card>
         <CardHeader>
           <CardTitle>Filter Reports</CardTitle>
-          <CardDescription>All waste reports in the system</CardDescription>
+          <CardDescription>Reports assigned to your municipality based on location</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-4">
           <div className="flex-1">
@@ -281,7 +281,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
             <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-semibold mb-2">No reports found</p>
             <p className="text-sm text-muted-foreground text-center">
-              No reports have been assigned to your team yet
+              No reports have been assigned to your municipality yet
             </p>
           </CardContent>
         </Card>
