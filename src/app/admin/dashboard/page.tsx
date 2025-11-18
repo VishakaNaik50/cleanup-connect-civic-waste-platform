@@ -87,10 +87,10 @@ export default function AdminDashboard() {
   const [gettingTeamLocation, setGettingTeamLocation] = useState(false);
   const [newTeam, setNewTeam] = useState({
     name: "",
-    serviceArea: "",
     centerLatitude: "",
     centerLongitude: "",
     radiusKm: "",
+    wardNumbers: "",
     contactEmail: "",
     contactPhone: ""
   });
@@ -303,10 +303,21 @@ export default function AdminDashboard() {
   };
 
   const handleCreateTeam = async () => {
-    if (!newTeam.name || !newTeam.serviceArea || !newTeam.centerLatitude || 
+    if (!newTeam.name || !newTeam.centerLatitude || 
         !newTeam.centerLongitude || !newTeam.radiusKm || !newTeam.contactEmail || 
-        !newTeam.contactPhone) {
+        !newTeam.contactPhone || !newTeam.wardNumbers) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Parse ward numbers from comma-separated string
+    const wardNumbersArray = newTeam.wardNumbers
+      .split(',')
+      .map(w => parseInt(w.trim()))
+      .filter(w => !isNaN(w));
+
+    if (wardNumbersArray.length === 0) {
+      toast.error("Please enter at least one valid ward number");
       return;
     }
 
@@ -320,10 +331,12 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({
           name: newTeam.name,
-          serviceArea: newTeam.serviceArea,
-          centerLatitude: parseFloat(newTeam.centerLatitude),
-          centerLongitude: parseFloat(newTeam.centerLongitude),
-          radiusKm: parseFloat(newTeam.radiusKm),
+          serviceArea: {
+            lat: parseFloat(newTeam.centerLatitude),
+            lng: parseFloat(newTeam.centerLongitude),
+            radius: parseFloat(newTeam.radiusKm)
+          },
+          wardNumbers: wardNumbersArray,
           contactEmail: newTeam.contactEmail,
           contactPhone: newTeam.contactPhone
         })
@@ -334,10 +347,10 @@ export default function AdminDashboard() {
         setCreateTeamDialogOpen(false);
         setNewTeam({
           name: "",
-          serviceArea: "",
           centerLatitude: "",
           centerLongitude: "",
           radiusKm: "",
+          wardNumbers: "",
           contactEmail: "",
           contactPhone: ""
         });
@@ -852,12 +865,15 @@ export default function AdminDashboard() {
             </div>
             
             <div>
-              <Label>Service Area *</Label>
+              <Label>Ward Numbers *</Label>
               <Input
-                value={newTeam.serviceArea}
-                onChange={(e) => setNewTeam({...newTeam, serviceArea: e.target.value})}
-                placeholder="e.g., Downtown District"
+                value={newTeam.wardNumbers}
+                onChange={(e) => setNewTeam({...newTeam, wardNumbers: e.target.value})}
+                placeholder="e.g., 1, 2, 3, 4"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter ward numbers separated by commas
+              </p>
             </div>
             
             <div className="md:col-span-2">
