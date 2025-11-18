@@ -189,11 +189,12 @@ export async function POST(request: NextRequest) {
     // Get the nearest team
     const nearest = teamsWithDistance[0];
 
-    // Update the report with assignment
+    // Update the report with assignment including municipality name
     const now = new Date().toISOString();
     await db.update(reports)
       .set({
         assignedTeamId: nearest.team.id,
+        assignedMunicipality: nearest.team.name,
         assignmentDate: now,
         status: 'assigned',
         updatedAt: now
