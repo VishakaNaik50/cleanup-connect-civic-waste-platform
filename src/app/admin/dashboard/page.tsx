@@ -48,7 +48,7 @@ interface Report {
 interface Team {
   id: number;
   name: string;
-  serviceArea: string;
+  serviceArea: string | { lat: number; lng: number; radius: number };
   centerLatitude: number | null;
   centerLongitude: number | null;
   radiusKm: number | null;
@@ -101,6 +101,13 @@ export default function AdminDashboard() {
   
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState("");
+
+  // Helper function to format service area
+  const formatServiceArea = (serviceArea: string | { lat: number; lng: number; radius: number } | undefined): string => {
+    if (!serviceArea) return 'N/A';
+    if (typeof serviceArea === 'string') return serviceArea;
+    return `Area: ${serviceArea.lat?.toFixed(4)}, ${serviceArea.lng?.toFixed(4)} (${serviceArea.radius}km radius)`;
+  };
 
   useEffect(() => {
     verifyAdmin();
@@ -753,7 +760,7 @@ export default function AdminDashboard() {
                       <Users className="h-5 w-5 text-blue-600" />
                       {team.name}
                     </CardTitle>
-                    <CardDescription>{team.serviceArea}</CardDescription>
+                    <CardDescription>{formatServiceArea(team.serviceArea)}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2 text-sm">
@@ -804,7 +811,7 @@ export default function AdminDashboard() {
                   <SelectContent>
                     {teams.map(team => (
                       <SelectItem key={team.id} value={team.id.toString()}>
-                        {team.name} - {team.serviceArea}
+                        {team.name} - {formatServiceArea(team.serviceArea)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -824,7 +831,7 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Create Team Dialog - Updated with Auto Geolocation */}
+      {/* Create Team Dialog */}
       <Dialog open={createTeamDialogOpen} onOpenChange={setCreateTeamDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -958,7 +965,7 @@ export default function AdminDashboard() {
               <Users className="h-5 w-5" />
               {selectedTeam?.name}
             </DialogTitle>
-            <DialogDescription>{selectedTeam?.serviceArea}</DialogDescription>
+            <DialogDescription>{selectedTeam ? formatServiceArea(selectedTeam.serviceArea) : ''}</DialogDescription>
           </DialogHeader>
           
           {selectedTeam && (
