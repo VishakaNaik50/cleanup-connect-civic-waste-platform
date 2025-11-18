@@ -67,43 +67,17 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
   const [updating, setUpdating] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
-  const [userTeamId, setUserTeamId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchUserTeam();
-  }, [municipalityUserId]);
-
-  useEffect(() => {
-    if (userTeamId !== null) {
-      fetchReports();
-    }
-  }, [statusFilter, severityFilter, userTeamId]);
-
-  const fetchUserTeam = async () => {
-    try {
-      const token = localStorage.getItem("bearer_token");
-      const response = await fetch(`/api/users/${municipalityUserId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        setUserTeamId(userData.teamId);
-      } else {
-        toast.error("Failed to fetch team information");
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch user team:", error);
-      toast.error("Failed to load team information");
-    }
-  };
+    fetchReports();
+  }, [statusFilter, severityFilter, municipalityName]);
 
   const fetchReports = async () => {
     try {
       setLoading(true);
       
-      // Only fetch reports assigned to this team
-      let url = `/api/reports?limit=100&assignedTeamId=${userTeamId}`;
+      // Fetch ALL reports since municipality users can see all reports
+      let url = `/api/reports?limit=100`;
       
       if (statusFilter !== "all") {
         url += `&status=${statusFilter}`;
@@ -252,7 +226,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
     toast.success("Opening location in Google Maps");
   };
 
-  if (loading || userTeamId === null) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-green-600" />
@@ -266,7 +240,7 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
       <Card>
         <CardHeader>
           <CardTitle>Filter Reports</CardTitle>
-          <CardDescription>Showing reports assigned to your team</CardDescription>
+          <CardDescription>All waste reports in the system</CardDescription>
         </CardHeader>
         <CardContent className="flex gap-4">
           <div className="flex-1">
