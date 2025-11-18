@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: [
     'www.orchids.app',
+    '3000-550db983-6616-4238-89b8-30bd9018b1e2.orchids.page',
     '3000-550db983-6616-4238-89b8-30bd9018b1e2.proxy.daytona.works',
     'localhost:3000',
   ],
