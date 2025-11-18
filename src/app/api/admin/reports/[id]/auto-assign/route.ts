@@ -151,6 +151,7 @@ export async function POST(
     const updatedReport = await db.update(reports)
       .set({
         assignedTeamId: selectedTeam.teamId,
+        assignedMunicipality: selectedTeam.team.name,
         assignedBy: adminIdInt,
         assignmentDate: now,
         status: newStatus,
