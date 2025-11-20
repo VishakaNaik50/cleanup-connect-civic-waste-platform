@@ -74,14 +74,15 @@ export default function CitizenDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50/80 via-emerald-50/80 to-teal-50/80 relative overflow-hidden">
-      {/* Animated Background Pattern */}
-      <div className="fixed inset-0 z-0 opacity-30">
+      {/* Beautiful Static Background */}
+      <div className="fixed inset-0 z-0">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
           style={{
-            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/abstract-environmental-pattern-with-soft-1cb3ad1b-20251116034524.jpg')",
+            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/stunning-close-up-photograph-of-diverse--242ddd09-20251120131033.jpg')",
           }}
         />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-50/95 via-emerald-50/90 to-teal-50/95 dark:from-gray-950/95 dark:via-gray-900/90 dark:to-gray-950/95" />
       </div>
 
       {/* Header with Glassmorphism - Responsive */}
@@ -148,14 +149,17 @@ export default function CitizenDashboard() {
         </div>
       </header>
 
-      {/* Hero Section with Beautiful Background - Responsive */}
+      {/* Hero Section with Beautiful Static Background - Responsive */}
       <div className="relative z-10">
-        <div 
-          className="relative h-40 sm:h-52 md:h-64 bg-cover bg-center overflow-hidden"
-          style={{
-            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/wide-panoramic-view-of-a-clean-sustainab-17f6608e-20251116034528.jpg')",
-          }}
-        >
+        <div className="relative h-40 sm:h-52 md:h-64 overflow-hidden">
+          {/* Beautiful Static Background */}
+          <div 
+            className="absolute inset-0 w-full h-full bg-cover bg-center"
+            style={{
+              backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/award-badge-and-trophy-with-green-leaves-fecacb5b-20251120130555.jpg')",
+            }}
+          />
+          
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-b from-green-900/70 via-emerald-800/60 to-teal-900/70" />
           
