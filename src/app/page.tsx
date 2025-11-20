@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60 z-50 shadow-lg">
+      <header className="border-b sticky top-0 bg-white/90 dark:bg-gray-950/90 backdrop-blur-2xl supports-[backdrop-filter]:bg-white/80 dark:supports-[backdrop-filter]:bg-gray-950/80 z-50 shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 shadow-xl shadow-green-500/30 hover:shadow-2xl hover:shadow-green-500/40 transition-all duration-300">
@@ -82,34 +82,40 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section with Stunning Video Background */}
       <section className="relative py-20 sm:py-32 md:py-40 px-4 overflow-hidden">
-        {/* Hero Background Image */}
-        <div 
-          className="absolute inset-0 z-0 scale-105"
-          style={{
-            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/ultra-modern-eco-friendly-smart-city-sky-30dbaa02-20251120130555.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/98 via-white/90 to-white dark:from-gray-950/98 dark:via-gray-950/90 dark:to-gray-950 z-[1]" />
+        {/* Video Background - More Visible */}
+        <div className="absolute inset-0 z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_videos/stunning-aerial-view-of-a-modern-sustain-5a938903-20251120131055.mp4" type="video/mp4" />
+          </video>
+          {/* Lighter overlay for better video visibility */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white/85 dark:from-gray-950/85 dark:via-gray-950/70 dark:to-gray-950/85" />
+          {/* Vignette effect for depth */}
+          <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-white/40 dark:to-gray-950/40" />
+        </div>
         
         <div className="container mx-auto max-w-7xl text-center relative z-10">
-          <Badge className="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50 backdrop-blur-xl text-green-700 dark:text-green-400 border-2 border-green-200/80 dark:border-green-800/80 px-6 py-2.5 text-sm font-bold shadow-2xl shadow-green-500/20 hover:scale-105 transition-transform duration-300" variant="secondary">
+          <Badge className="mb-8 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl text-green-700 dark:text-green-400 border-2 border-green-200/80 dark:border-green-800/80 px-6 py-2.5 text-sm font-bold shadow-2xl shadow-green-500/20 hover:scale-105 transition-transform duration-300" variant="secondary">
             <Sparkles className="h-4 w-4 mr-2 inline" />
             🌍 Civic Engagement Platform
           </Badge>
-          <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight leading-tight">
+          <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight leading-tight drop-shadow-2xl">
             Make Your City{" "}
             <span className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent drop-shadow-lg">
               Stunning
             </span>
           </h2>
-          <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground mb-12 max-w-4xl mx-auto leading-relaxed font-medium">
+          <p className="text-xl sm:text-2xl md:text-3xl text-gray-800 dark:text-gray-200 mb-12 max-w-4xl mx-auto leading-relaxed font-semibold drop-shadow-lg">
             Report waste with a photo, let AI classify it, and connect with your municipality for faster action.
             <br />
-            <span className="text-green-600 dark:text-green-400 font-semibold">Join a community committed to sustainability.</span>
+            <span className="text-green-600 dark:text-green-400 font-bold">Join a community committed to sustainability.</span>
           </p>
           <div className="flex gap-4 sm:gap-6 justify-center flex-wrap mb-20">
             <Button 
@@ -237,27 +243,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How It Works with Prominent Video Background */}
       <section className="py-20 sm:py-32 px-4 relative overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/diverse-group-of-happy-young-volunteers--fa7c4686-20251120130555.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-green-50/95 to-white/95 dark:from-gray-950/95 dark:via-green-950/95 dark:to-gray-950/95 z-[1]" />
+        {/* Video Background - More Visible with Better Overlay */}
+        <div className="absolute inset-0 z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_videos/diverse-group-of-happy-young-volunteers--c3c5cf28-20251120131108.mp4" type="video/mp4" />
+          </video>
+          {/* Subtle gradient overlay to keep video visible but text readable */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-green-50/75 to-white/80 dark:from-gray-950/80 dark:via-green-950/75 dark:to-gray-950/80" />
+          {/* Add bokeh effect overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-gray-950/10 animate-pulse" style={{ animationDuration: '4s' }} />
+        </div>
         
         <div className="container mx-auto max-w-7xl relative z-10">
           <div className="text-center mb-20">
-            <Badge className="mb-6 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl text-green-700 dark:text-green-400 border-2 border-green-300 dark:border-green-800 px-5 py-2 text-sm font-bold shadow-xl">
+            <Badge className="mb-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl text-green-700 dark:text-green-400 border-2 border-green-300 dark:border-green-800 px-5 py-2 text-sm font-bold shadow-2xl">
               <Target className="h-4 w-4 mr-2 inline" />
               How It Works
             </Badge>
-            <h3 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 tracking-tight">Simple Steps to Make a Difference</h3>
-            <p className="text-muted-foreground text-lg sm:text-xl font-medium">Transform your community in four easy steps</p>
+            <h3 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 tracking-tight drop-shadow-xl">Simple Steps to Make a Difference</h3>
+            <p className="text-gray-800 dark:text-gray-200 text-lg sm:text-xl font-semibold drop-shadow-lg">Transform your community in four easy steps</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10">
             {[
@@ -268,15 +280,15 @@ export default function Home() {
             ].map((item, i) => (
               <div key={i} className="text-center group">
                 <div className="relative mb-8">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-black mx-auto shadow-2xl shadow-green-500/40 group-hover:scale-110 group-hover:shadow-3xl group-hover:shadow-green-500/60 transition-all duration-300">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-black mx-auto shadow-2xl shadow-green-500/50 group-hover:scale-110 group-hover:shadow-3xl group-hover:shadow-green-500/70 transition-all duration-300 backdrop-blur-xl">
                     {item.step}
                   </div>
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 border-4 border-green-500 flex items-center justify-center shadow-xl">
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-16 h-16 rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-4 border-green-500 flex items-center justify-center shadow-2xl">
                     <div className="text-green-600">{item.icon}</div>
                   </div>
                 </div>
-                <h4 className="font-black text-xl sm:text-2xl mb-4 mt-6">{item.title}</h4>
-                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed font-medium">
+                <h4 className="font-black text-xl sm:text-2xl mb-4 mt-6 drop-shadow-lg">{item.title}</h4>
+                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed font-semibold drop-shadow-md bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 border border-white/50">
                   {item.desc}
                 </p>
               </div>
@@ -291,7 +303,7 @@ export default function Home() {
         <div 
           className="absolute inset-0 z-0"
           style={{
-            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/beautiful-nature-scene-with-flowing-clea-eb759cc2-20251120130556.jpg')",
+            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/stunning-close-up-photograph-of-diverse--242ddd09-20251120131033.jpg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
