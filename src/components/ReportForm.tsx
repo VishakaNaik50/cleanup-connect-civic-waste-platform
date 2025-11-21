@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, MapPin, Loader2, Camera, Leaf, Brain } from "lucide-react";
+import { Upload, MapPin, Loader2, Camera, Leaf, Brain, X, Video } from "lucide-react";
 import { toast } from "sonner";
 import { getWasteClassifier } from "@/lib/hybrid-waste-classifier";
 
@@ -38,6 +38,8 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [classifying, setClassifying] = useState(false);
   const [estimatedCO2, setEstimatedCO2] = useState<number | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   
   const [formData, setFormData] = useState({
     wasteType: "",
@@ -51,6 +53,8 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const classifierRef = useRef(getWasteClassifier());
 
   // Preload the AI model when component mounts
@@ -65,6 +69,84 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
     };
     initClassifier();
   }, []);
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" }, // Use back camera on mobile
+        audio: false 
+      });
+      setStream(mediaStream);
+      setCameraActive(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      
+      toast.success("Camera activated");
+    } catch (error) {
+      console.error("Camera access error:", error);
+      toast.error("Could not access camera", {
+        description: "Please ensure camera permissions are granted"
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw the video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob and create preview
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+
+      const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+      setPhotoFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const preview = reader.result as string;
+        setPhotoPreview(preview);
+        
+        // Stop camera after capture
+        stopCamera();
+        
+        // Classify the captured image
+        classifyWasteClientSide(preview);
+      };
+      reader.readAsDataURL(file);
+    }, 'image/jpeg', 0.95);
+  };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -265,6 +347,7 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
       const newReport = await response.json();
 
       // Auto-assign to nearest municipality team
+      let assignedMunicipalityName = null;
       try {
         const assignRes = await fetch("/api/geospatial/nearest-team", {
           method: "POST",
@@ -278,6 +361,7 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
 
         if (assignRes.ok) {
           const assignData = await assignRes.json();
+          assignedMunicipalityName = assignData.teamName;
           toast.success("Report assigned to nearest team!", {
             description: `Assigned to ${assignData.teamName} (${assignData.distance.toFixed(1)}km away)`,
           });
@@ -299,6 +383,35 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
       let carbonData = null;
       if (carbonRes.ok) {
         carbonData = await carbonRes.json();
+      }
+
+      // Get user email to send confirmation
+      try {
+        const userRes = await fetch(`/api/auth/me?id=${userId}`);
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          
+          // Send confirmation email
+          await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: userData.email,
+              subject: "Report Submitted Successfully - CleanUp Connect",
+              municipalityName: assignedMunicipalityName,
+              reportDetails: {
+                id: newReport.id,
+                wasteType: formData.wasteType,
+                severity: formData.severity,
+                address: formData.address,
+                carbonFootprint: carbonData?.carbonFootprintKg?.toFixed(2),
+              },
+            }),
+          });
+        }
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+        // Don't fail the whole operation if email fails
       }
 
       // Award points for creating report
@@ -351,43 +464,117 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Photo Upload */}
+      {/* Photo Upload/Camera Section */}
       <div className="space-y-2">
         <Label>Photo of Waste *</Label>
-        <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-green-600 transition-colors cursor-pointer"
-             onClick={() => fileInputRef.current?.click()}>
-          {photoPreview ? (
-            <div className="relative">
-              <img src={photoPreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+        
+        {!photoPreview && !cameraActive && (
+          <div className="space-y-3">
+            {/* Camera and Upload Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Button
                 type="button"
-                variant="secondary"
-                size="sm"
-                className="mt-4"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 transition-colors"
+                onClick={startCamera}
               >
-                <Camera className="h-4 w-4 mr-2" />
-                Change Photo
+                <Camera className="h-8 w-8 text-green-600" />
+                <span className="text-sm font-medium">Take Photo</span>
               </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="h-24 flex flex-col items-center justify-center gap-2 border-2 border-dashed hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="h-8 w-8 text-green-600" />
+                <span className="text-sm font-medium">Upload Photo</span>
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              AI will automatically classify the waste (no API needed)
+            </p>
+          </div>
+        )}
+
+        {/* Camera View */}
+        {cameraActive && (
+          <div className="relative rounded-lg overflow-hidden bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full max-h-96 object-contain"
+            />
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={capturePhoto}
+                  className="bg-green-600 hover:bg-green-700 shadow-lg"
+                >
+                  <Camera className="h-5 w-5 mr-2" />
+                  Capture Photo
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="destructive"
+                  onClick={stopCamera}
+                >
+                  <X className="h-5 w-5 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+            <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm font-medium">
+              <Video className="h-4 w-4" />
+              Camera Active
+            </div>
+          </div>
+        )}
+
+        {/* Hidden canvas for photo capture */}
+        <canvas ref={canvasRef} className="hidden" />
+
+        {/* Photo Preview */}
+        {photoPreview && (
+          <div className="border-2 border-dashed rounded-lg p-4">
+            <div className="relative">
+              <img src={photoPreview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+              <div className="mt-4 flex gap-2 justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={startCamera}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Take New Photo
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Different Photo
+                </Button>
+              </div>
               {classifying && (
-                <div className="mt-2 flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                <div className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-green-600">
                   <Brain className="h-4 w-4 animate-pulse" />
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Client-side AI analyzing image...
                 </div>
               )}
             </div>
-          ) : (
-            <div>
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm font-medium">Click to upload waste photo</p>
-              <p className="text-xs text-muted-foreground">AI will automatically classify the waste (no API needed)</p>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
+
         <input
           ref={fileInputRef}
           type="file"
