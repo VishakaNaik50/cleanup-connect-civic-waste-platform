@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
                         </ul>
                         
                         <div style="text-align: center;">
-                          <a href="${request.nextUrl.origin}/municipality" class="action-button">
+                          <a href="${request.nextUrl.origin}/municipality?reportId=${createdReport.id}" class="action-button">
                             View Report in Dashboard →
                           </a>
                         </div>

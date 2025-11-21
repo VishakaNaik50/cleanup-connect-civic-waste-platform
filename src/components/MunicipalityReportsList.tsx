@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, MapPin, Calendar, Clock, CheckCircle, AlertCircle, Leaf, Map } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, CheckCircle, AlertCircle, Leaf, Map, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface Report {
@@ -27,6 +28,7 @@ interface Report {
 interface MunicipalityReportsListProps {
   municipalityName: string;
   municipalityUserId: number;
+  highlightReportId?: number | null;
 }
 
 const statusOptions = [
@@ -61,16 +63,30 @@ const severityColors: Record<string, string> = {
   critical: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 };
 
-export function MunicipalityReportsList({ municipalityName, municipalityUserId }: MunicipalityReportsListProps) {
+export function MunicipalityReportsList({ municipalityName, municipalityUserId, highlightReportId }: MunicipalityReportsListProps) {
+  const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
+  const reportRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     fetchReports();
   }, [statusFilter, severityFilter, municipalityName]);
+
+  // Scroll to highlighted report when it's loaded
+  useEffect(() => {
+    if (highlightReportId && reports.length > 0 && reportRefs.current[highlightReportId]) {
+      setTimeout(() => {
+        reportRefs.current[highlightReportId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [highlightReportId, reports]);
 
   const fetchReports = async () => {
     try {
@@ -206,6 +222,11 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
     }
   };
 
+  const handleViewReport = (reportId: number) => {
+    // Store the report ID and redirect to municipality dashboard
+    router.push(`/municipality?reportId=${reportId}`);
+  };
+
   const openInGoogleMaps = (lat: number, lng: number, address: string) => {
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     
@@ -288,7 +309,17 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
       ) : (
         <div className="space-y-4">
           {reports.map((report) => (
-            <Card key={report.id} className="overflow-hidden">
+            <Card 
+              key={report.id} 
+              ref={(el) => {
+                if (el) reportRefs.current[report.id] = el;
+              }}
+              className={`overflow-hidden transition-all duration-300 ${
+                highlightReportId === report.id 
+                  ? 'ring-4 ring-blue-500 shadow-2xl scale-[1.02]' 
+                  : ''
+              }`}
+            >
               <div className="flex flex-col lg:flex-row">
                 <div className="lg:w-48 h-48 lg:h-auto relative">
                   <img
@@ -340,6 +371,17 @@ export function MunicipalityReportsList({ municipalityName, municipalityUserId }
                     
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
+                      {/* View Report Button - Always visible */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewReport(report.id)}
+                        className="border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Report
+                      </Button>
+
                       {/* View on Map Button - Always visible */}
                       <Button
                         size="sm"

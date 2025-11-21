@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getUser, clearUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Recycle, LogOut, Map, List, BarChart3, MapPin, Clock, AlertTriangle, CheckCircle2, Play } from "lucide-react";
+import { Recycle, LogOut, Map, List, BarChart3, MapPin, Clock, AlertTriangle, CheckCircle2, Play, Calendar, Leaf, X } from "lucide-react";
 import { MunicipalityReportsList } from "@/components/MunicipalityReportsList";
 import { MunicipalityStats } from "@/components/MunicipalityStats";
 import { ReportsMap } from "@/components/ReportsMap";
@@ -32,11 +32,34 @@ interface WorkerTask {
   teamName: string;
 }
 
+interface ReportDetails {
+  id: number;
+  description: string;
+  location: { lat: number; lng: number; address: string };
+  photoUrl: string;
+  wasteType: string;
+  biodegradable: string;
+  severity: string;
+  status: string;
+  priorityScore: number;
+  createdAt: string;
+  userId: number;
+  assignedTo?: number;
+  assignedMunicipality?: string;
+}
+
 export default function MunicipalityDashboard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("list");
   const [isWorker, setIsWorker] = useState(false);
+  const [highlightReportId, setHighlightReportId] = useState<number | null>(null);
+  
+  // Report detail view
+  const [reportDetailsOpen, setReportDetailsOpen] = useState(false);
+  const [selectedReportDetails, setSelectedReportDetails] = useState<ReportDetails | null>(null);
+  const [loadingReportDetails, setLoadingReportDetails] = useState(false);
   
   // Worker-specific states
   const [workerTasks, setWorkerTasks] = useState<WorkerTask[]>([]);
@@ -67,7 +90,72 @@ export default function MunicipalityDashboard() {
     
     // Check if user is a worker (assigned to a team)
     checkWorkerStatus(currentUser.id);
-  }, [router]);
+    
+    // Check for reportId in URL
+    const reportId = searchParams.get('reportId');
+    if (reportId) {
+      setHighlightReportId(parseInt(reportId));
+      setActiveTab("list"); // Switch to list tab to show the report
+    }
+  }, [router, searchParams]);
+
+  // Handle report view from query params
+  useEffect(() => {
+    const reportId = searchParams.get('reportId');
+    if (reportId && user) {
+      fetchReportDetails(parseInt(reportId));
+    }
+  }, [searchParams, user]);
+
+  const fetchReportDetails = async (reportId: number) => {
+    try {
+      setLoadingReportDetails(true);
+      const response = await fetch(`/api/reports/${reportId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch report details");
+      }
+      const data = await response.json();
+      
+      // Parse location if it's a string
+      const parsedReport = {
+        ...data,
+        location: typeof data.location === 'string' ? JSON.parse(data.location) : data.location,
+      };
+      
+      setSelectedReportDetails(parsedReport);
+      setReportDetailsOpen(true);
+    } catch (error: any) {
+      toast.error("Failed to load report details", {
+        description: error.message,
+      });
+    } finally {
+      setLoadingReportDetails(false);
+    }
+  };
+
+  const handleCloseReportDetails = () => {
+    setReportDetailsOpen(false);
+    setSelectedReportDetails(null);
+    // Remove reportId from URL
+    router.push('/municipality');
+  };
+
+  const openInGoogleMaps = (lat: number, lng: number) => {
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    
+    const isInIframe = window.self !== window.top;
+    
+    if (isInIframe) {
+      window.parent.postMessage(
+        { type: "OPEN_EXTERNAL_URL", data: { url: googleMapsUrl } },
+        "*"
+      );
+    } else {
+      window.open(googleMapsUrl, "_blank", "noopener,noreferrer");
+    }
+    
+    toast.success("Opening location in Google Maps");
+  };
 
   const checkWorkerStatus = async (userId: number) => {
     try {
@@ -539,6 +627,7 @@ export default function MunicipalityDashboard() {
             <MunicipalityReportsList 
               municipalityName={user.municipalityName}
               municipalityUserId={user.id}
+              highlightReportId={highlightReportId}
             />
           </TabsContent>
 
@@ -604,6 +693,146 @@ export default function MunicipalityDashboard() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Report Details Dialog */}
+      <Dialog open={reportDetailsOpen} onOpenChange={setReportDetailsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Report Details</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleCloseReportDetails}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Complete information about this waste report
+            </DialogDescription>
+          </DialogHeader>
+          
+          {loadingReportDetails ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : selectedReportDetails && (
+            <div className="space-y-6">
+              {/* Report Photo */}
+              <div className="relative h-96 rounded-xl overflow-hidden border">
+                <img
+                  src={selectedReportDetails.photoUrl}
+                  alt="Waste report"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Status and Priority Badges */}
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getStatusColor(selectedReportDetails.status)}>
+                  <span className="flex items-center gap-1">
+                    {getStatusIcon(selectedReportDetails.status)}
+                    {selectedReportDetails.status.replace("_", " ").toUpperCase()}
+                  </span>
+                </Badge>
+                <Badge variant="outline" className="text-lg">
+                  {selectedReportDetails.wasteType.charAt(0).toUpperCase() + selectedReportDetails.wasteType.slice(1)}
+                </Badge>
+                <Badge variant={selectedReportDetails.biodegradable === "biodegradable" ? "default" : "secondary"} 
+                  className={selectedReportDetails.biodegradable === "biodegradable" ? "bg-green-600" : "bg-orange-600"}>
+                  <Leaf className="h-3 w-3 mr-1" />
+                  {selectedReportDetails.biodegradable === "biodegradable" ? "Biodegradable" : "Non-Biodegradable"}
+                </Badge>
+                <div className="flex items-center gap-1">
+                  <div className={`w-3 h-3 rounded-full ${getSeverityColor(selectedReportDetails.severity)}`} />
+                  <span className="text-sm font-medium capitalize">
+                    {selectedReportDetails.severity} Severity
+                  </span>
+                </div>
+                <Badge variant="outline">
+                  Priority Score: {selectedReportDetails.priorityScore}/100
+                </Badge>
+              </div>
+
+              {/* Description */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{selectedReportDetails.description}</p>
+                </CardContent>
+              </Card>
+
+              {/* Location Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Location Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <span className="font-semibold">Address:</span>
+                    <p className="text-muted-foreground">{selectedReportDetails.location.address}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="font-semibold">Latitude:</span>
+                      <p className="text-muted-foreground">{selectedReportDetails.location.lat.toFixed(6)}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold">Longitude:</span>
+                      <p className="text-muted-foreground">{selectedReportDetails.location.lng.toFixed(6)}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => openInGoogleMaps(selectedReportDetails.location.lat, selectedReportDetails.location.lng)}
+                    className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Map className="h-4 w-4 mr-2" />
+                    View on Google Maps
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Timestamps */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Submitted:</span>
+                    <span className="font-medium">
+                      {new Date(selectedReportDetails.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {selectedReportDetails.assignedMunicipality && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Assigned to:</span>
+                      <Badge variant="outline">{selectedReportDetails.assignedMunicipality}</Badge>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseReportDetails}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
