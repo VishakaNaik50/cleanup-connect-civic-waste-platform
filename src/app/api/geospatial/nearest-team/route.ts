@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     // Sort by distance ascending
     teamsWithDistance.sort((a, b) => a.distance - b.distance);
 
-    // Get the nearest team
+    // Get the nearest team for assignment
     const nearest = teamsWithDistance[0];
 
     // Update the report with assignment including municipality name
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       })
       .where(eq(reports.id, reportId));
 
-    // Get report and reporter details for email notification
+    // Get report and reporter details for email notifications
     const [report] = await db.select()
       .from(reports)
       .where(eq(reports.id, reportId))
@@ -215,39 +215,63 @@ export async function POST(request: NextRequest) {
         .where(eq(users.id, report.userId))
         .limit(1);
 
-      if (reporter && nearest.team.contactEmail) {
-        // Send email notification to municipality team
+      if (reporter) {
         const location = report.location as { address: string };
         const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/municipality`;
 
-        const emailResult = await sendEmail({
-          to: nearest.team.contactEmail,
-          subject: `New Waste Report #${reportId} - ${report.severity.toUpperCase()} Priority`,
-          react: WasteReportNotificationEmail({
-            reportId: report.id,
-            wasteType: report.wasteType,
-            severity: report.severity,
-            location: location.address || `${lat}, ${lng}`,
-            municipalityName: nearest.team.name,
-            reporterName: reporter.name,
-            description: report.description,
-            actionUrl,
-          }),
+        // Send emails to ALL nearby municipalities within 50km radius
+        const NOTIFICATION_RADIUS_KM = 50;
+        const nearbyTeams = teamsWithDistance.filter(t => 
+          t.distance <= NOTIFICATION_RADIUS_KM && t.team.contactEmail
+        );
+
+        console.log(`Found ${nearbyTeams.length} teams within ${NOTIFICATION_RADIUS_KM}km for report #${reportId}`);
+
+        // Send email notifications to all nearby teams in parallel
+        const emailPromises = nearbyTeams.map(async ({ team, distance }) => {
+          try {
+            const emailResult = await sendEmail({
+              to: team.contactEmail!,
+              subject: `New Waste Report #${reportId} - ${report.severity.toUpperCase()} Priority`,
+              react: WasteReportNotificationEmail({
+                reportId: report.id,
+                wasteType: report.wasteType,
+                severity: report.severity,
+                location: location.address || `${lat}, ${lng}`,
+                municipalityName: team.name,
+                reporterName: reporter.name,
+                description: report.description,
+                actionUrl,
+              }),
+            });
+
+            if (emailResult.success) {
+              console.log(`✓ Email sent to ${team.name} (${team.contactEmail}) - ${distance}km away`);
+              return { success: true, team: team.name, email: team.contactEmail, distance };
+            } else {
+              console.error(`✗ Failed to send email to ${team.name}:`, emailResult.error);
+              return { success: false, team: team.name, email: team.contactEmail, error: emailResult.error };
+            }
+          } catch (error) {
+            console.error(`✗ Error sending email to ${team.name}:`, error);
+            return { success: false, team: team.name, email: team.contactEmail, error: String(error) };
+          }
         });
 
-        if (!emailResult.success) {
-          console.error('Failed to send email notification:', emailResult.error);
-          // Don't fail the request if email fails, just log it
-        } else {
-          console.log('Email notification sent successfully to', nearest.team.contactEmail);
-        }
+        const emailResults = await Promise.all(emailPromises);
+        const successCount = emailResults.filter(r => r.success).length;
+        
+        console.log(`Email notifications: ${successCount}/${nearbyTeams.length} sent successfully`);
       }
     }
 
     return NextResponse.json({
       teamId: nearest.team.id,
       teamName: nearest.team.name,
-      distance: nearest.distance
+      distance: nearest.distance,
+      notifiedTeamsCount: teamsWithDistance.filter(t => 
+        t.distance <= 50 && t.team.contactEmail
+      ).length
     }, { status: 200 });
 
   } catch (error) {
