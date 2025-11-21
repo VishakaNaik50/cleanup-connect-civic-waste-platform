@@ -66,25 +66,86 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
     }
   };
 
-  const classifyWaste = (file: File) => {
+  const classifyWaste = async (file: File) => {
     setClassifying(true);
-    // Simulate AI classification with random selection
-    setTimeout(() => {
-      const randomWaste = wasteTypes[Math.floor(Math.random() * wasteTypes.length)];
-      const randomSeverity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64String = reader.result as string;
+          
+          // Call AI classification API
+          const response = await fetch("/api/classify-waste", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageBase64: base64String }),
+          });
+
+          const data = await response.json();
+
+          if (data.success && data.classification) {
+            const { wasteType, biodegradable, severity, confidence, description } = data.classification;
+            
+            setFormData(prev => ({
+              ...prev,
+              wasteType,
+              biodegradable,
+              severity,
+            }));
+            
+            const confidencePercent = Math.round((confidence || 0.9) * 100);
+            toast.success("AI Classification Complete", {
+              description: `${description || `Detected: ${wasteType} waste (${biodegradable}), Severity: ${severity}`} - ${confidencePercent}% confident`,
+            });
+          } else {
+            // Use fallback if AI fails
+            const fallback = data.fallback || {
+              wasteType: 'mixed',
+              biodegradable: 'non-biodegradable',
+              severity: 'medium',
+            };
+            
+            setFormData(prev => ({
+              ...prev,
+              wasteType: fallback.wasteType,
+              biodegradable: fallback.biodegradable,
+              severity: fallback.severity,
+            }));
+            
+            toast.warning("AI Classification Uncertain", {
+              description: "Using fallback classification. Please verify waste type manually.",
+            });
+          }
+        } catch (error) {
+          console.error("Classification failed:", error);
+          
+          // Fallback to safe defaults
+          setFormData(prev => ({
+            ...prev,
+            wasteType: 'mixed',
+            biodegradable: 'non-biodegradable',
+            severity: 'medium',
+          }));
+          
+          toast.error("Classification Error", {
+            description: "Please manually select waste type and severity",
+          });
+        } finally {
+          setClassifying(false);
+        }
+      };
       
-      setFormData(prev => ({
-        ...prev,
-        wasteType: randomWaste.value,
-        biodegradable: randomWaste.biodegradable,
-        severity: randomSeverity.value,
-      }));
+      reader.onerror = () => {
+        setClassifying(false);
+        toast.error("Failed to read image");
+      };
       
+      reader.readAsDataURL(file);
+    } catch (error) {
       setClassifying(false);
-      toast.success("AI Classification Complete", {
-        description: `Detected: ${randomWaste.label} waste (${randomWaste.biodegradable}), Severity: ${randomSeverity.label}`,
-      });
-    }, 1500);
+      toast.error("Classification failed");
+    }
   };
 
   // Calculate estimated CO2 based on weight and waste type
