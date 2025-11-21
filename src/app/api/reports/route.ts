@@ -328,12 +328,7 @@ export async function POST(request: NextRequest) {
 
         // Send email notification to municipality team
         try {
-          // Get the proper public URL (not localhost)
-          const publicUrl = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
-            ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
-            : request.nextUrl.origin;
-
-          await fetch(`http://localhost:3000/api/send-email`, {
+          await fetch(`${request.nextUrl.origin}/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -439,7 +434,7 @@ export async function POST(request: NextRequest) {
                         </ul>
                         
                         <div style="text-align: center;">
-                          <a href="${publicUrl}/municipality?reportId=${createdReport.id}" class="action-button">
+                          <a href="${request.nextUrl.origin}/municipality" class="action-button">
                             View Report in Dashboard →
                           </a>
                         </div>
@@ -471,7 +466,7 @@ export async function POST(request: NextRequest) {
             .limit(1);
 
           if (citizen.length > 0 && citizen[0].email) {
-            await fetch(`http://localhost:3000/api/send-email`, {
+            await fetch(`${request.nextUrl.origin}/api/send-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
