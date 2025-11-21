@@ -200,18 +200,15 @@ export default function MunicipalityDashboard() {
   if (isWorker) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden">
-        {/* Animated Video Background */}
-        <div className="fixed inset-0 opacity-10 dark:opacity-15 pointer-events-none z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_videos/diverse-group-of-happy-young-volunteers--c3c5cf28-20251120131108.mp4" type="video/mp4" />
-          </video>
-        </div>
+        {/* Animated Background Pattern */}
+        <div 
+          className="fixed inset-0 opacity-5 dark:opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/abstract-environmental-pattern-backgroun-4174ad59-20251116034817.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
 
         {/* Header */}
         <header className="border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm">
@@ -442,21 +439,18 @@ export default function MunicipalityDashboard() {
   // Regular Municipality View (for non-workers)
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated Video Background */}
-      <div className="fixed inset-0 opacity-10 dark:opacity-15 pointer-events-none z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_videos/modern-high-tech-municipality-control-ce-551d8368-20251120131111.mp4" type="video/mp4" />
-        </video>
-      </div>
+      {/* Animated Background Pattern */}
+      <div 
+        className="fixed inset-0 opacity-5 dark:opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/abstract-environmental-pattern-backgroun-4174ad59-20251116034817.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
 
       {/* Header */}
-      <header className="border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm relative">
+      <header className="border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg">
@@ -482,21 +476,18 @@ export default function MunicipalityDashboard() {
         </div>
       </header>
 
-      {/* Hero Section with Video Background */}
+      {/* Hero Section */}
       <section className="relative py-16 px-4 overflow-hidden">
-        {/* Video Background */}
-        <div className="absolute inset-0 z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
-          >
-            <source src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_videos/modern-high-tech-municipality-control-ce-551d8368-20251120131111.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background z-[1]" />
-        </div>
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: "url('https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/project-uploads/e4b94f1a-1738-4307-8356-aab0db62dbd2/generated_images/modern-municipality-control-room-with-la-ea230129-20251116034818.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/90 to-background z-[1]" />
         
         <div className="container mx-auto px-4 max-w-7xl relative z-10">
           <div className="mb-8">
