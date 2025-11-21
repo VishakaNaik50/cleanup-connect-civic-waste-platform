@@ -12,41 +12,55 @@ export default function Home() {
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
   const [platformStats, setPlatformStats] = useState({
-    totalReports: 25,
-    activeMembers: 8,
-    resolvedReports: 5,
-    municipalities: 3,
+    totalReports: 0,
+    activeMembers: 0,
+    resolvedReports: 0,
+    municipalities: 0,
     totalCarbonKg: 0,
   });
 
   useEffect(() => {
-    // Fetch platform-wide carbon stats
-    const fetchPlatformCarbonStats = async () => {
+    // Fetch real-time platform stats
+    const fetchPlatformStats = async () => {
       try {
         // Get all users
         const usersRes = await fetch("/api/users");
-        if (!usersRes.ok) return;
-        const users = await usersRes.json();
-        
-        // Calculate total carbon footprint from all citizens
-        let totalCarbon = 0;
-        for (const user of users) {
-          if (user.role === "citizen") {
+        if (usersRes.ok) {
+          const users = await usersRes.json();
+          const citizens = users.filter((u: any) => u.role === "citizen");
+          const municipalities = users.filter((u: any) => u.role === "municipality");
+          
+          // Calculate total carbon footprint from all citizens
+          let totalCarbon = 0;
+          for (const user of citizens) {
             const carbonRes = await fetch(`/api/users/${user.id}/carbon-stats?userId=${user.id}`);
             if (carbonRes.ok) {
               const carbonData = await carbonRes.json();
               totalCarbon += carbonData.totalCarbonFootprintKg || 0;
             }
           }
+          
+          // Get all reports
+          const reportsRes = await fetch("/api/reports?limit=1000");
+          if (reportsRes.ok) {
+            const reports = await reportsRes.json();
+            const resolvedReports = reports.filter((r: any) => r.status === "resolved");
+            
+            setPlatformStats({
+              totalReports: reports.length,
+              activeMembers: citizens.length,
+              resolvedReports: resolvedReports.length,
+              municipalities: municipalities.length,
+              totalCarbonKg: totalCarbon,
+            });
+          }
         }
-        
-        setPlatformStats(prev => ({ ...prev, totalCarbonKg: totalCarbon }));
       } catch (error) {
-        console.error("Failed to fetch platform carbon stats:", error);
+        console.error("Failed to fetch platform stats:", error);
       }
     };
 
-    fetchPlatformCarbonStats();
+    fetchPlatformStats();
   }, []);
 
   return (
@@ -128,10 +142,10 @@ export default function Home() {
           {/* Floating Stats Cards */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
             {[
-              { value: "25+", label: "Active Reports", gradient: "from-blue-500 to-cyan-500", icon: <BarChart3 className="h-5 w-5" /> },
-              { value: "8", label: "Community Members", gradient: "from-green-500 to-emerald-500", icon: <Users className="h-5 w-5" /> },
-              { value: "5", label: "Reports Resolved", gradient: "from-purple-500 to-pink-500", icon: <Award className="h-5 w-5" /> },
-              { value: "3", label: "Municipalities", gradient: "from-orange-500 to-red-500", icon: <MapPin className="h-5 w-5" /> },
+              { value: platformStats.totalReports.toString(), label: "Active Reports", gradient: "from-blue-500 to-cyan-500", icon: <BarChart3 className="h-5 w-5" /> },
+              { value: platformStats.activeMembers.toString(), label: "Community Members", gradient: "from-green-500 to-emerald-500", icon: <Users className="h-5 w-5" /> },
+              { value: platformStats.resolvedReports.toString(), label: "Reports Resolved", gradient: "from-purple-500 to-pink-500", icon: <Award className="h-5 w-5" /> },
+              { value: platformStats.municipalities.toString(), label: "Municipalities", gradient: "from-orange-500 to-red-500", icon: <MapPin className="h-5 w-5" /> },
               { 
                 value: platformStats.totalCarbonKg > 0 ? `${platformStats.totalCarbonKg.toFixed(0)}kg` : "0kg", 
                 label: "CO₂e Avoided", 
