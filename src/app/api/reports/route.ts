@@ -328,6 +328,11 @@ export async function POST(request: NextRequest) {
 
         // Send email notification to municipality team
         try {
+          // Get the proper public URL (not localhost)
+          const publicUrl = request.headers.get('x-forwarded-proto') && request.headers.get('x-forwarded-host')
+            ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('x-forwarded-host')}`
+            : request.nextUrl.origin;
+
           await fetch(`http://localhost:3000/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -434,7 +439,7 @@ export async function POST(request: NextRequest) {
                         </ul>
                         
                         <div style="text-align: center;">
-                          <a href="${request.nextUrl.origin}/municipality?reportId=${createdReport.id}" class="action-button">
+                          <a href="${publicUrl}/municipality?reportId=${createdReport.id}" class="action-button">
                             View Report in Dashboard →
                           </a>
                         </div>
