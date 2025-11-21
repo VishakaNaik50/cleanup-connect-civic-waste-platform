@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, MapPin, Loader2, Camera, Leaf } from "lucide-react";
+import { Upload, MapPin, Loader2, Camera, Leaf, Brain } from "lucide-react";
 import { toast } from "sonner";
+import { getWasteClassifier } from "@/lib/hybrid-waste-classifier";
 
 interface ReportFormProps {
   userId: number;
@@ -19,8 +20,8 @@ const wasteTypes = [
   { value: "organic", label: "Organic", biodegradable: "biodegradable" },
   { value: "metal", label: "Metal", biodegradable: "non-biodegradable" },
   { value: "electronic", label: "Electronic", biodegradable: "non-biodegradable" },
-  { value: "mixed", label: "Mixed", biodegradable: "non-biodegradable" },
-  { value: "hazardous", label: "Hazardous", biodegradable: "non-biodegradable" },
+  { value: "glass", label: "Glass", biodegradable: "non-biodegradable" },
+  { value: "paper", label: "Paper", biodegradable: "biodegradable" },
 ];
 
 const severityLevels = [
@@ -50,6 +51,20 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const classifierRef = useRef(getWasteClassifier());
+
+  // Preload the AI model when component mounts
+  useEffect(() => {
+    const initClassifier = async () => {
+      try {
+        await classifierRef.current.initialize();
+        console.log('Hybrid waste classifier initialized');
+      } catch (error) {
+        console.error('Failed to initialize classifier:', error);
+      }
+    };
+    initClassifier();
+  }, []);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,94 +72,84 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
+        const preview = reader.result as string;
+        setPhotoPreview(preview);
+        
+        // Classify the image using client-side AI
+        classifyWasteClientSide(preview);
       };
       reader.readAsDataURL(file);
-      
-      // Simulate AI classification
-      classifyWaste(file);
     }
   };
 
-  const classifyWaste = async (file: File) => {
+  const classifyWasteClientSide = async (imageDataUrl: string) => {
     setClassifying(true);
+    
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64String = reader.result as string;
-          
-          // Call AI classification API
-          const response = await fetch("/api/classify-waste", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: base64String }),
-          });
-
-          const data = await response.json();
-
-          if (data.success && data.classification) {
-            const { wasteType, biodegradable, severity, confidence, description } = data.classification;
-            
-            setFormData(prev => ({
-              ...prev,
-              wasteType,
-              biodegradable,
-              severity,
-            }));
-            
-            const confidencePercent = Math.round((confidence || 0.9) * 100);
-            toast.success("AI Classification Complete", {
-              description: `${description || `Detected: ${wasteType} waste (${biodegradable}), Severity: ${severity}`} - ${confidencePercent}% confident`,
-            });
-          } else {
-            // Use fallback if AI fails
-            const fallback = data.fallback || {
-              wasteType: 'mixed',
-              biodegradable: 'non-biodegradable',
-              severity: 'medium',
-            };
-            
-            setFormData(prev => ({
-              ...prev,
-              wasteType: fallback.wasteType,
-              biodegradable: fallback.biodegradable,
-              severity: fallback.severity,
-            }));
-            
-            toast.warning("AI Classification Uncertain", {
-              description: "Using fallback classification. Please verify waste type manually.",
-            });
-          }
-        } catch (error) {
-          console.error("Classification failed:", error);
-          
-          // Fallback to safe defaults
-          setFormData(prev => ({
-            ...prev,
-            wasteType: 'mixed',
-            biodegradable: 'non-biodegradable',
-            severity: 'medium',
-          }));
-          
-          toast.error("Classification Error", {
-            description: "Please manually select waste type and severity",
-          });
-        } finally {
-          setClassifying(false);
-        }
-      };
+      // Create image element for classification
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
       
-      reader.onerror = () => {
-        setClassifying(false);
-        toast.error("Failed to read image");
-      };
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageDataUrl;
+      });
+
+      // Run hybrid AI classification (COCO-SSD + advanced mapping)
+      const result = await classifierRef.current.classify(img);
+
+      // Map biodegradability
+      const biodegradable = result.biodegradable ? "biodegradable" : "non-biodegradable";
+
+      // Update form with AI results
+      setFormData(prev => ({
+        ...prev,
+        wasteType: result.wasteType,
+        biodegradable,
+        severity: result.severity,
+      }));
+
+      const confidencePercent = Math.round(result.confidence * 100);
+      const methodLabel = 
+        result.processingMethod === 'detection' ? 'Object Detection' :
+        result.processingMethod === 'hybrid' ? 'Hybrid Analysis' :
+        'Visual Analysis';
       
-      reader.readAsDataURL(file);
+      let description = `Classified as ${result.wasteType} (${confidencePercent}% confidence)`;
+      if (result.detectedObjects.length > 0) {
+        const topObjects = result.detectedObjects.slice(0, 3).map(o => o.class).join(', ');
+        description += ` - Detected: ${topObjects}`;
+      }
+      
+      toast.success(`🎯 ${methodLabel} Complete`, {
+        description,
+        duration: 5000,
+      });
+
+      console.log('Classification result:', {
+        wasteType: result.wasteType,
+        confidence: result.confidence,
+        detectedObjects: result.detectedObjects,
+        method: result.processingMethod
+      });
+
     } catch (error) {
+      console.error("Classification failed:", error);
+      
+      // Fallback to safe defaults
+      setFormData(prev => ({
+        ...prev,
+        wasteType: 'plastic',
+        biodegradable: 'non-biodegradable',
+        severity: 'medium',
+      }));
+      
+      toast.warning("Classification Error", {
+        description: "Using fallback classification. Please verify waste type manually.",
+      });
+    } finally {
       setClassifying(false);
-      toast.error("Classification failed");
     }
   };
 
@@ -368,9 +373,10 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
                 Change Photo
               </Button>
               {classifying && (
-                <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="mt-2 flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                  <Brain className="h-4 w-4 animate-pulse" />
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  AI is classifying waste...
+                  Client-side AI analyzing image...
                 </div>
               )}
             </div>
@@ -378,7 +384,7 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
             <div>
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm font-medium">Click to upload waste photo</p>
-              <p className="text-xs text-muted-foreground">AI will automatically classify the waste</p>
+              <p className="text-xs text-muted-foreground">AI will automatically classify the waste (no API needed)</p>
             </div>
           )}
         </div>
@@ -401,6 +407,7 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
             wasteType: value,
             biodegradable: wasteType?.biodegradable || ""
           }));
+          calculateEstimatedCO2(formData.estimatedWeightKg, value);
         }}>
           <SelectTrigger>
             <SelectValue placeholder="AI will classify automatically" />
@@ -563,8 +570,9 @@ export function ReportForm({ userId, onSuccess }: ReportFormProps) {
           </>
         ) : classifying ? (
           <>
+            <Brain className="h-4 w-4 mr-2 animate-pulse" />
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Classifying Waste...
+            AI Classifying...
           </>
         ) : (
           "Submit Report"
