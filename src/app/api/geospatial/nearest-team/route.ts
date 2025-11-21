@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { municipalityTeams, reports, users } from '@/db/schema';
+import { municipalityTeams, reports } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { sendEmail } from '@/lib/email';
-import { WasteReportNotificationEmail } from '@/components/emails/waste-report-notification';
 
 // Haversine formula to calculate distance between two coordinates in kilometers
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -202,47 +200,6 @@ export async function POST(request: NextRequest) {
         updatedAt: now
       })
       .where(eq(reports.id, reportId));
-
-    // Get report and reporter details for email notification
-    const [report] = await db.select()
-      .from(reports)
-      .where(eq(reports.id, reportId))
-      .limit(1);
-
-    if (report) {
-      const [reporter] = await db.select()
-        .from(users)
-        .where(eq(users.id, report.userId))
-        .limit(1);
-
-      if (reporter && nearest.team.contactEmail) {
-        // Send email notification to municipality team
-        const location = report.location as { address: string };
-        const actionUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/municipality`;
-
-        const emailResult = await sendEmail({
-          to: nearest.team.contactEmail,
-          subject: `New Waste Report #${reportId} - ${report.severity.toUpperCase()} Priority`,
-          react: WasteReportNotificationEmail({
-            reportId: report.id,
-            wasteType: report.wasteType,
-            severity: report.severity,
-            location: location.address || `${lat}, ${lng}`,
-            municipalityName: nearest.team.name,
-            reporterName: reporter.name,
-            description: report.description,
-            actionUrl,
-          }),
-        });
-
-        if (!emailResult.success) {
-          console.error('Failed to send email notification:', emailResult.error);
-          // Don't fail the request if email fails, just log it
-        } else {
-          console.log('Email notification sent successfully to', nearest.team.contactEmail);
-        }
-      }
-    }
 
     return NextResponse.json({
       teamId: nearest.team.id,
