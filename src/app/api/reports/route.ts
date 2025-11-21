@@ -328,7 +328,7 @@ export async function POST(request: NextRequest) {
 
         // Send email notification to municipality team
         try {
-          await fetch(`${request.nextUrl.origin}/api/send-email`, {
+          await fetch(`http://localhost:3000/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -466,7 +466,7 @@ export async function POST(request: NextRequest) {
             .limit(1);
 
           if (citizen.length > 0 && citizen[0].email) {
-            await fetch(`${request.nextUrl.origin}/api/send-email`, {
+            await fetch(`http://localhost:3000/api/send-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
